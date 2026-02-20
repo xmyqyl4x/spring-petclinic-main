@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 
+import io.opentracing.Span;
+import io.opentracing.util.GlobalTracer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Controller;
@@ -122,10 +124,32 @@ class PetController {
 		return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 	}
 
+	/**
+	 * Datadog Custom Tags: Adds custom tags to the active APM span to enrich
+	 * trace data with pet-specific business context. Tags like "pet.name",
+	 * "pet.type", "owner.id", and "validation.passed" allow filtering and
+	 * grouping in Datadog APM dashboards — for example, to see which pet
+	 * types are created most often or how frequently validation fails.
+	 * @see <a href=
+	 *     "https://docs.datadoghq.com/tracing/trace_collection/custom_instrumentation/server-side/">
+	 *     Datadog: Add Custom Tags</a>
+	 */
 	@PostMapping("/pets/new")
 	public String processCreationForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
 		logger.debug("Entering processCreationForm() - owner id={}, pet name={}", owner.getId(), pet.getName());
+
+		// Add custom tags to the active Datadog APM span.
+		// These tags enrich the trace with business-level context so you
+		// can filter/group in Datadog by pet type, owner, or outcome.
+		Span span = GlobalTracer.get().activeSpan();
+		if (span != null) {
+			span.setTag("pet.name", pet.getName() != null ? pet.getName() : "");
+			span.setTag("owner.id", owner.getId() != null ? owner.getId() : 0);
+			if (pet.getType() != null) {
+				span.setTag("pet.type", pet.getType().getName());
+			}
+		}
 
 		if (StringUtils.hasText(pet.getName()) && pet.isNew() && owner.getPet(pet.getName(), true) != null)
 			result.rejectValue("name", "duplicate", "already exists");
@@ -136,10 +160,17 @@ class PetController {
 		}
 
 		if (result.hasErrors()) {
+			if (span != null) {
+				span.setTag("validation.passed", false);
+				span.setTag("validation.error_count", result.getErrorCount());
+			}
 			logger.debug("Exiting processCreationForm() - validation errors, returning form view");
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 
+		if (span != null) {
+			span.setTag("validation.passed", true);
+		}
 		owner.addPet(pet);
 		this.owners.save(owner);
 		redirectAttributes.addFlashAttribute("message", "New Pet has been Added");
