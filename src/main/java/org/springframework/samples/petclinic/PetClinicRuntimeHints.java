@@ -16,6 +16,8 @@
 
 package org.springframework.samples.petclinic;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.samples.petclinic.model.BaseEntity;
@@ -24,14 +26,18 @@ import org.springframework.samples.petclinic.vet.Vet;
 
 public class PetClinicRuntimeHints implements RuntimeHintsRegistrar {
 
+	private static final Logger logger = LogManager.getLogger(PetClinicRuntimeHints.class);
+
 	@Override
 	public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
+		logger.info("Entering registerHints() - classLoader={}", classLoader);
 		hints.resources().registerPattern("db/*"); // https://github.com/spring-projects/spring-boot/issues/32654
 		hints.resources().registerPattern("messages/*");
 		hints.resources().registerPattern("mysql-default-conf");
 		hints.serialization().registerType(BaseEntity.class);
 		hints.serialization().registerType(Person.class);
 		hints.serialization().registerType(Vet.class);
+		logger.info("Exiting registerHints() - registered resource patterns and serialization types for BaseEntity, Person, Vet");
 	}
 
 }

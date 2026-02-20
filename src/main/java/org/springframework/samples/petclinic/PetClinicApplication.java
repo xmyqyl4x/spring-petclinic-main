@@ -16,6 +16,8 @@
 
 package org.springframework.samples.petclinic;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportRuntimeHints;
@@ -29,8 +31,12 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 @ImportRuntimeHints(PetClinicRuntimeHints.class)
 public class PetClinicApplication {
 
+	private static final Logger logger = LogManager.getLogger(PetClinicApplication.class);
+
 	public static void main(String[] args) {
+		logger.info("Entering main() - starting PetClinic application with {} argument(s)", args.length);
 		SpringApplication.run(PetClinicApplication.class, args);
+		logger.info("Exiting main() - PetClinic application has started successfully");
 	}
 
 }

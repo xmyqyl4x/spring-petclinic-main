@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.system;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -28,10 +30,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 class CrashController {
 
+	private static final Logger logger = LogManager.getLogger(CrashController.class);
+
 	@GetMapping("/oups")
 	public String triggerException() {
-		throw new RuntimeException(
+		logger.error("Entering triggerException() - about to throw a RuntimeException");
+		RuntimeException ex = new RuntimeException(
 				"Expected: controller used to showcase what " + "happens when an exception is thrown");
+		logger.error("Exiting triggerException() - throwing RuntimeException: {}", ex.getMessage());
+		throw ex;
 	}
 
 }

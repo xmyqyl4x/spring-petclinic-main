@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.util.Assert;
@@ -47,6 +49,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/owners/{ownerId}")
 class PetController {
 
+	private static final Logger logger = LogManager.getLogger(PetController.class);
+
 	private static final String VIEWS_PETS_CREATE_OR_UPDATE_FORM = "pets/createOrUpdatePetForm";
 
 	private final OwnerRepository owners;
@@ -56,55 +60,72 @@ class PetController {
 	public PetController(OwnerRepository owners, PetTypeRepository types) {
 		this.owners = owners;
 		this.types = types;
+		logger.debug("PetController instantiated");
 	}
 
 	@ModelAttribute("types")
 	public Collection<PetType> populatePetTypes() {
-		return this.types.findPetTypes();
+		logger.debug("Entering populatePetTypes()");
+		Collection<PetType> petTypes = this.types.findPetTypes();
+		logger.debug("Exiting populatePetTypes() - found {} pet types", petTypes.size());
+		return petTypes;
 	}
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
+		logger.debug("Entering findOwner() - ownerId={}", ownerId);
 		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
+		logger.debug("Exiting findOwner() - resolved owner id={}, lastName={}", owner.getId(), owner.getLastName());
 		return owner;
 	}
 
 	@ModelAttribute("pet")
 	public Pet findPet(@PathVariable("ownerId") int ownerId,
 			@PathVariable(name = "petId", required = false) Integer petId) {
+		logger.debug("Entering findPet() - ownerId={}, petId={}", ownerId, petId);
 
 		if (petId == null) {
+			logger.debug("Exiting findPet() - petId is null, returning new Pet");
 			return new Pet();
 		}
 
 		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-		return owner.getPet(petId);
+		Pet pet = owner.getPet(petId);
+		logger.debug("Exiting findPet() - found pet name={}", pet != null ? pet.getName() : "null");
+		return pet;
 	}
 
 	@InitBinder("owner")
 	public void initOwnerBinder(WebDataBinder dataBinder) {
+		logger.debug("Entering initOwnerBinder() - disallowing 'id' field");
 		dataBinder.setDisallowedFields("id");
+		logger.debug("Exiting initOwnerBinder()");
 	}
 
 	@InitBinder("pet")
 	public void initPetBinder(WebDataBinder dataBinder) {
+		logger.debug("Entering initPetBinder() - setting PetValidator");
 		dataBinder.setValidator(new PetValidator());
+		logger.debug("Exiting initPetBinder()");
 	}
 
 	@GetMapping("/pets/new")
 	public String initCreationForm(Owner owner, ModelMap model) {
+		logger.debug("Entering initCreationForm() - owner id={}", owner.getId());
 		Pet pet = new Pet();
 		owner.addPet(pet);
+		logger.debug("Exiting initCreationForm() - returning pet creation form view");
 		return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 	}
 
 	@PostMapping("/pets/new")
 	public String processCreationForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
+		logger.debug("Entering processCreationForm() - owner id={}, pet name={}", owner.getId(), pet.getName());
 
 		if (StringUtils.hasText(pet.getName()) && pet.isNew() && owner.getPet(pet.getName(), true) != null)
 			result.rejectValue("name", "duplicate", "already exists");
@@ -115,23 +136,28 @@ class PetController {
 		}
 
 		if (result.hasErrors()) {
+			logger.debug("Exiting processCreationForm() - validation errors, returning form view");
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 
 		owner.addPet(pet);
 		this.owners.save(owner);
 		redirectAttributes.addFlashAttribute("message", "New Pet has been Added");
+		logger.debug("Exiting processCreationForm() - created pet name={} for owner id={}", pet.getName(), owner.getId());
 		return "redirect:/owners/{ownerId}";
 	}
 
 	@GetMapping("/pets/{petId}/edit")
 	public String initUpdateForm() {
+		logger.debug("Entering initUpdateForm()");
+		logger.debug("Exiting initUpdateForm() - returning pet edit form view");
 		return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 	}
 
 	@PostMapping("/pets/{petId}/edit")
 	public String processUpdateForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
+		logger.debug("Entering processUpdateForm() - owner id={}, pet id={}, pet name={}", owner.getId(), pet.getId(), pet.getName());
 
 		String petName = pet.getName();
 
@@ -149,11 +175,13 @@ class PetController {
 		}
 
 		if (result.hasErrors()) {
+			logger.debug("Exiting processUpdateForm() - validation errors, returning form view");
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 
 		updatePetDetails(owner, pet);
 		redirectAttributes.addFlashAttribute("message", "Pet details has been edited");
+		logger.debug("Exiting processUpdateForm() - updated pet id={} for owner id={}", pet.getId(), owner.getId());
 		return "redirect:/owners/{ownerId}";
 	}
 
@@ -163,6 +191,7 @@ class PetController {
 	 * @param pet The pet with updated details
 	 */
 	private void updatePetDetails(Owner owner, Pet pet) {
+		logger.debug("Entering updatePetDetails() - owner id={}, pet id={}", owner.getId(), pet.getId());
 		Integer id = pet.getId();
 		Assert.state(id != null, "'pet.getId()' must not be null");
 		Pet existingPet = owner.getPet(id);
@@ -171,9 +200,11 @@ class PetController {
 			existingPet.setName(pet.getName());
 			existingPet.setBirthDate(pet.getBirthDate());
 			existingPet.setType(pet.getType());
+			logger.debug("Exiting updatePetDetails() - updated existing pet id={}", id);
 		}
 		else {
 			owner.addPet(pet);
+			logger.debug("Exiting updatePetDetails() - added new pet to owner id={}", owner.getId());
 		}
 		this.owners.save(owner);
 	}
