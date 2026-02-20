@@ -168,6 +168,33 @@
 #   Requires: DogStatsD enabled on the Datadog Agent. If the Agent runs in a
 #   container, set DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true and expose port 8125.
 #
+# -----------------------------------------------------------------------------
+# dd.dynamic.instrumentation.enabled  (default: false)
+#   Env: DD_DYNAMIC_INSTRUMENTATION_ENABLED
+# -----------------------------------------------------------------------------
+#   Enables Datadog Dynamic Instrumentation (Live Debugger). When true, you
+#   can create non-breaking breakpoints, log probes, metric probes, and span
+#   probes on running code directly from the Datadog UI — without
+#   redeploying or restarting the application. This is invaluable for
+#   debugging production issues in real time.
+#   Requires: dd-java-agent >= 1.34.0, Datadog Agent >= 7.49.0 with
+#   APM enabled (DD_APM_ENABLED=true, port 8126/TCP).
+#   Full docs: https://docs.datadoghq.com/tracing/trace_collection/dynamic_instrumentation/enabling/java/
+#
+# -----------------------------------------------------------------------------
+# dd.symbol.database.upload.enabled  (default: true when DI is enabled,
+#   dd-trace-java >= 1.42.0)
+#   Env: DD_SYMBOL_DATABASE_UPLOAD_ENABLED
+# -----------------------------------------------------------------------------
+#   Controls the Symbol Database upload for Dynamic Instrumentation's
+#   autocomplete and search features. When enabled, the tracer uploads
+#   class/method metadata so the Datadog UI can provide IDE-like
+#   autocomplete when creating probes — making it easy to find the exact
+#   class, method, or line you want to instrument. Automatically enabled
+#   when dd.dynamic.instrumentation.enabled=true on dd-trace-java >= 1.42.0,
+#   but set explicitly here for clarity.
+#   Full docs: https://docs.datadoghq.com/tracing/dynamic_instrumentation/symdb/java/
+#
 # =============================================================================
 
 set -euo pipefail
@@ -204,5 +231,7 @@ exec java \
   -Ddd.remote_config.enabled=false \
   -Ddd.service.mapping=h2:my-h2-spring-petclinic-main-name-db \
   -Ddd.trace.health.metrics.enabled=true \
+  -Ddd.dynamic.instrumentation.enabled=true \
+  -Ddd.symbol.database.upload.enabled=true \
   -Dlog.dir="${LOG_DIR}" \
   -jar "${APP_JAR}"
