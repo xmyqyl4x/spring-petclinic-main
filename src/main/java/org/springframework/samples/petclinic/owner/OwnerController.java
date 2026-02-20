@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import datadog.trace.api.Trace;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.data.domain.Page;
@@ -110,6 +115,17 @@ class OwnerController {
 		return "owners/findOwners";
 	}
 
+	/**
+	 * Datadog Custom Span: The {@code @Trace} annotation creates a custom APM
+	 * span named "owner.search" for this method. This enables Datadog to track
+	 * owner search operations as distinct spans in the flame graph, providing
+	 * visibility into search performance and how often searches yield zero,
+	 * one, or multiple results. The manual child span "owner.db.search"
+	 * wraps the database query to measure DB lookup time independently.
+	 * @see <a href="https://docs.datadoghq.com/tracing/guide/instrument_custom_method/?tab=java">
+	 *     Datadog: Instrument Custom Method</a>
+	 */
+	@Trace(operationName = "owner.search", resourceName = "OwnerController.processFindForm")
 	@GetMapping("/owners")
 	public String processFindForm(@RequestParam(defaultValue = "1") int page, Owner owner, BindingResult result,
 			Model model) {
@@ -120,8 +136,24 @@ class OwnerController {
 			lastName = ""; // empty string signifies broadest possible search
 		}
 
-		// find owners by last name
-		Page<Owner> ownersResults = findPaginatedForOwnersLastName(page, lastName);
+		// Custom manual span wrapping the database search operation.
+		// This creates a child span under the @Trace span, isolating
+		// database query time from the rest of the request processing.
+		Tracer tracer = GlobalTracer.get();
+		Span dbSpan = tracer.buildSpan("owner.db.search")
+			.withTag("owner.lastName", lastName)
+			.withTag("search.page", page)
+			.start();
+		Page<Owner> ownersResults;
+		try (Scope scope = tracer.activateSpan(dbSpan)) {
+			ownersResults = findPaginatedForOwnersLastName(page, lastName);
+			dbSpan.setTag("search.results.total",
+					ownersResults.getTotalElements());
+		}
+		finally {
+			dbSpan.finish();
+		}
+
 		if (ownersResults.isEmpty()) {
 			// no owners found
 			result.rejectValue("lastName", "notFound", "not found");
