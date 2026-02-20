@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+  <Properties>
+    <!-- Log directory is configurable via system property: -Dlog.dir=/custom/path -->
+    <Property name="LOG_DIR">${sys:log.dir:-/var/log/petclinic}</Property>
+    <Property name="LOG_FILE">spring-petclinic.log</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+      <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+    </Console>
+
+    <RollingFile name="File"
+                 fileName="${LOG_DIR}/${LOG_FILE}"
+                 filePattern="${LOG_DIR}/spring-petclinic-%d{yyyy-MM-dd}-%i.log.gz">
+      <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="10MB"/>
+        <TimeBasedTriggeringPolicy interval="1"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <Root level="DEBUG">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="File"/>
+    </Root>
+  </Loggers>
+
+</Configuration>
