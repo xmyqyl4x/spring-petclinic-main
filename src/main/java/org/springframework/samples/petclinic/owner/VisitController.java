@@ -84,7 +84,8 @@ class VisitController {
 
 		Visit visit = new Visit();
 		pet.addVisit(visit);
-		logger.debug("Exiting loadPetWithVisit() - loaded pet name={} for owner lastName={}", pet.getName(), owner.getLastName());
+		logger.debug("Exiting loadPetWithVisit() - pet={}, owner={}",
+				pet.getName(), owner.getLastName());
 		return visit;
 	}
 
@@ -102,7 +103,8 @@ class VisitController {
 	@PostMapping("/owners/{ownerId}/pets/{petId}/visits/new")
 	public String processNewVisitForm(@ModelAttribute Owner owner, @PathVariable int petId, @Valid Visit visit,
 			BindingResult result, RedirectAttributes redirectAttributes) {
-		logger.debug("Entering processNewVisitForm() - owner id={}, petId={}, hasErrors={}", owner.getId(), petId, result.hasErrors());
+		logger.debug("Entering processNewVisitForm() - ownerId={}, petId={}, errors={}",
+				owner.getId(), petId, result.hasErrors());
 		if (result.hasErrors()) {
 			logger.debug("Exiting processNewVisitForm() - validation errors, returning form view");
 			return "pets/createOrUpdateVisitForm";
