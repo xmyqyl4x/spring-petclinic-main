@@ -18,6 +18,8 @@ package org.springframework.samples.petclinic.owner;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -41,15 +43,20 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 class VisitController {
 
+	private static final Logger logger = LogManager.getLogger(VisitController.class);
+
 	private final OwnerRepository owners;
 
 	public VisitController(OwnerRepository owners) {
 		this.owners = owners;
+		logger.debug("VisitController instantiated");
 	}
 
 	@InitBinder
 	public void setAllowedFields(WebDataBinder dataBinder) {
+		logger.debug("Entering setAllowedFields() - disallowing 'id' field");
 		dataBinder.setDisallowedFields("id");
+		logger.debug("Exiting setAllowedFields()");
 	}
 
 	/**
@@ -62,6 +69,7 @@ class VisitController {
 	@ModelAttribute("visit")
 	public Visit loadPetWithVisit(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId,
 			Map<String, Object> model) {
+		logger.debug("Entering loadPetWithVisit() - ownerId={}, petId={}", ownerId, petId);
 		Optional<Owner> optionalOwner = owners.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
@@ -76,6 +84,7 @@ class VisitController {
 
 		Visit visit = new Visit();
 		pet.addVisit(visit);
+		logger.debug("Exiting loadPetWithVisit() - loaded pet name={} for owner lastName={}", pet.getName(), owner.getLastName());
 		return visit;
 	}
 
@@ -83,6 +92,8 @@ class VisitController {
 	// called
 	@GetMapping("/owners/{ownerId}/pets/{petId}/visits/new")
 	public String initNewVisitForm() {
+		logger.debug("Entering initNewVisitForm()");
+		logger.debug("Exiting initNewVisitForm() - returning visit form view");
 		return "pets/createOrUpdateVisitForm";
 	}
 
@@ -91,13 +102,16 @@ class VisitController {
 	@PostMapping("/owners/{ownerId}/pets/{petId}/visits/new")
 	public String processNewVisitForm(@ModelAttribute Owner owner, @PathVariable int petId, @Valid Visit visit,
 			BindingResult result, RedirectAttributes redirectAttributes) {
+		logger.debug("Entering processNewVisitForm() - owner id={}, petId={}, hasErrors={}", owner.getId(), petId, result.hasErrors());
 		if (result.hasErrors()) {
+			logger.debug("Exiting processNewVisitForm() - validation errors, returning form view");
 			return "pets/createOrUpdateVisitForm";
 		}
 
 		owner.addVisit(petId, visit);
 		this.owners.save(owner);
 		redirectAttributes.addFlashAttribute("message", "Your visit has been booked");
+		logger.debug("Exiting processNewVisitForm() - visit booked for pet id={}, owner id={}", petId, owner.getId());
 		return "redirect:/owners/{ownerId}";
 	}
 
