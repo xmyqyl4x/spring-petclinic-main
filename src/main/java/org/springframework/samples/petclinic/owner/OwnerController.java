@@ -89,7 +89,8 @@ class OwnerController {
 
 	@PostMapping("/owners/new")
 	public String processCreationForm(@Valid Owner owner, BindingResult result, RedirectAttributes redirectAttributes) {
-		logger.debug("Entering processCreationForm() - owner lastName={}, hasErrors={}", owner.getLastName(), result.hasErrors());
+		logger.debug("Entering processCreationForm() - lastName={}, errors={}",
+				owner.getLastName(), result.hasErrors());
 		if (result.hasErrors()) {
 			redirectAttributes.addFlashAttribute("error", "There was an error in creating the owner.");
 			logger.debug("Exiting processCreationForm() - validation errors, returning form view");
@@ -137,7 +138,8 @@ class OwnerController {
 
 		// multiple owners found
 		String view = addPaginationModel(page, model, ownersResults);
-		logger.debug("Exiting processFindForm() - found {} owners, returning paginated view", ownersResults.getTotalElements());
+		logger.debug("Exiting processFindForm() - found {} owners, paginated view",
+				ownersResults.getTotalElements());
 		return view;
 	}
 
@@ -148,7 +150,8 @@ class OwnerController {
 		model.addAttribute("totalPages", paginated.getTotalPages());
 		model.addAttribute("totalItems", paginated.getTotalElements());
 		model.addAttribute("listOwners", listOwners);
-		logger.debug("Exiting addPaginationModel() - totalPages={}, listSize={}", paginated.getTotalPages(), listOwners.size());
+		logger.debug("Exiting addPaginationModel() - totalPages={}, listSize={}",
+				paginated.getTotalPages(), listOwners.size());
 		return "owners/ownersList";
 	}
 

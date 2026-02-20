@@ -37,7 +37,7 @@ public class PetClinicRuntimeHints implements RuntimeHintsRegistrar {
 		hints.serialization().registerType(BaseEntity.class);
 		hints.serialization().registerType(Person.class);
 		hints.serialization().registerType(Vet.class);
-		logger.info("Exiting registerHints() - registered resource patterns and serialization types for BaseEntity, Person, Vet");
+		logger.info("Exiting registerHints() - registered resource patterns and serialization types");
 	}
 
 }

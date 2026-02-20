@@ -143,7 +143,8 @@ class PetController {
 		owner.addPet(pet);
 		this.owners.save(owner);
 		redirectAttributes.addFlashAttribute("message", "New Pet has been Added");
-		logger.debug("Exiting processCreationForm() - created pet name={} for owner id={}", pet.getName(), owner.getId());
+		logger.debug("Exiting processCreationForm() - pet name={} for owner id={}",
+				pet.getName(), owner.getId());
 		return "redirect:/owners/{ownerId}";
 	}
 
@@ -157,7 +158,8 @@ class PetController {
 	@PostMapping("/pets/{petId}/edit")
 	public String processUpdateForm(Owner owner, @Valid Pet pet, BindingResult result,
 			RedirectAttributes redirectAttributes) {
-		logger.debug("Entering processUpdateForm() - owner id={}, pet id={}, pet name={}", owner.getId(), pet.getId(), pet.getName());
+		logger.debug("Entering processUpdateForm() - owner={}, pet={}, name={}",
+				owner.getId(), pet.getId(), pet.getName());
 
 		String petName = pet.getName();
 
